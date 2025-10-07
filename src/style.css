@@ -66,7 +66,7 @@ h1 {
 button {
   border-radius: 8px;
   border: 1px solid transparent;
-  padding: 0.6em 1.2em;
+  padding: 0.3em 0.6em;
   font-size: 1em;
   font-weight: 500;
   font-family: inherit;
@@ -209,4 +209,27 @@ button:focus-visible {
 .app-footer {
   margin-top: 1rem;
   color: #888;
+}
+/* 手机横屏优化 */
+@media (max-width: 950px) and (orientation: landscape) {
+  #app {
+    padding: 0;
+    margin: 0;
+    width: 100%;
+  }
+  .app-header {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+  .controls {
+    flex-wrap: wrap;
+    gap: 0.3rem;
+  }
+  .ctrl-field span {
+    display: none; /* 节省空间，仅保留输入框 */
+  }
+  .keyboard {
+    width: 100%;
+    height: 200px;
+  }
 }
