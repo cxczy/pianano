@@ -497,12 +497,16 @@ async function fetchSongsIndex() {
     }
     if (initialSongId) {
       songSelect.value = initialSongId
-      const pre = await loadSongById(initialSongId)
-      if (pre) {
-        sequence = degreesToSequence(pre.notation, pre.baseOctave, pre.tempo, pre.transpose || 0)
-        playBtn.disabled = false
-        shareBtn.disabled = false
-        updateShareLink()
+      // 若链接中已有录音序列(seq)，不要自动加载歌曲以免覆盖
+      const hasSeqFromURL = Array.isArray(sequence) && sequence.length > 0
+      if (!hasSeqFromURL) {
+        const pre = await loadSongById(initialSongId)
+        if (pre) {
+          sequence = degreesToSequence(pre.notation, pre.baseOctave, pre.tempo, pre.transpose || 0)
+          playBtn.disabled = false
+          shareBtn.disabled = false
+          updateShareLink()
+        }
       }
     }
   } catch (e) {
