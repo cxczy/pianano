@@ -1,0 +1,11 @@
+{
+  "songs": [
+    {
+      "id": "fen_shou_kuai_le",
+      "title": "分手快乐（示例段落）",
+      "tempo": 92,
+      "baseOctave": 4,
+      "notationPath": "fen_shou_kuai_le.txt"
+    }
+  ]
+}
