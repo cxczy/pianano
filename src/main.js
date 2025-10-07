@@ -25,18 +25,54 @@ function noteToFreq(note, octave) {
   return a4 * Math.pow(2, semitone / 12)
 }
 
-function playTone(freq, duration = 0.6) {
+// Sustain voices for interactive playing
+const activeVoices = new Map() // Map<HTMLElement, {osc, gain, startedAt}>
+// Voices for auto playback (no element key)
+const playingVoices = new Set() // Set<{osc, gain, note, octave}>
+let pedalDown = false
+function startVoice(note, octave) {
   const now = audioCtx.currentTime
   const osc = audioCtx.createOscillator()
   const gain = audioCtx.createGain()
   osc.type = 'sine'
-  osc.frequency.value = freq
-  gain.gain.setValueAtTime(0.001, now)
-  gain.gain.exponentialRampToValueAtTime(0.4, now + 0.02)
-  gain.gain.exponentialRampToValueAtTime(0.0001, now + duration)
+  osc.frequency.value = noteToFreq(note, octave)
+  gain.gain.setValueAtTime(0.0001, now)
+  gain.gain.exponentialRampToValueAtTime(0.5, now + 0.03)
   osc.connect(gain).connect(audioCtx.destination)
   osc.start(now)
-  osc.stop(now + duration + 0.05)
+  return { osc, gain, startedAt: now }
+}
+function stopVoice(voice) {
+  const now = audioCtx.currentTime
+  // smooth release
+  try {
+    voice.gain.gain.cancelScheduledValues(now)
+    voice.gain.gain.setTargetAtTime(0.0001, now, 0.06)
+    voice.osc.stop(now + 0.08)
+  } catch (e) {
+    // ignore
+  }
+}
+
+function stopOrHold(voice) {
+  if (pedalDown) {
+    playingVoices.add(voice)
+  } else {
+    stopVoice(voice)
+  }
+}
+
+function releasePedal() {
+  const now = audioCtx.currentTime
+  // release all sustained notes
+  for (const v of playingVoices) {
+    try {
+      v.gain.gain.cancelScheduledValues(now)
+      v.gain.gain.setTargetAtTime(0.0001, now, 0.06)
+      v.osc.stop(now + 0.08)
+    } catch (e) {}
+  }
+  playingVoices.clear()
 }
 
 function createKey(note, octave, type) {
@@ -102,7 +138,11 @@ function onKeyDown(e) {
   const note = el.getAttribute('data-note')
   const octave = parseInt(el.getAttribute('data-octave'), 10)
   el.classList.add('active')
-  playTone(noteToFreq(note, octave))
+  audioCtx.resume()
+  if (!activeVoices.has(el)) {
+    const voice = startVoice(note, octave)
+    activeVoices.set(el, voice)
+  }
   if (recording) {
     const t = performance.now() - startTime
     sequence.push({ t, note, octave })
@@ -111,6 +151,11 @@ function onKeyDown(e) {
 function onKeyUp(e) {
   const el = e.currentTarget
   el.classList.remove('active')
+  const voice = activeVoices.get(el)
+  if (voice) {
+    stopVoice(voice)
+    activeVoices.delete(el)
+  }
 }
 
 function startRecord() {
@@ -154,10 +199,18 @@ function playSequence(seq = sequence) {
     osc.frequency.value = freq
     gain.gain.setValueAtTime(0.001, when)
     gain.gain.exponentialRampToValueAtTime(0.4, when + 0.02)
-    gain.gain.exponentialRampToValueAtTime(0.0001, when + durationSec)
+    // 不预设 stop，让踏板能延迟停止
     osc.connect(gain).connect(audioCtx.destination)
     osc.start(when)
-    osc.stop(when + durationSec + 0.05)
+    const voice = { osc, gain, note, octave }
+    // 计划常规停止或由踏板保持
+    const stopAt = when + durationSec
+    ;(() => {
+      const delayMs = Math.max(0, (stopAt - audioCtx.currentTime) * 1000)
+      setTimeout(() => {
+        stopOrHold(voice)
+      }, delayMs)
+    })()
 
     // 视觉：按下/抬起高亮
     const keyEl = findKeyEl(note, octave)
@@ -165,6 +218,7 @@ function playSequence(seq = sequence) {
       const delayMs = Math.max(0, (when - audioCtx.currentTime) * 1000)
       setTimeout(() => {
         keyEl.classList.add('active')
+        // 键视觉不受踏板影响，按乐谱时值恢复
         setTimeout(() => keyEl.classList.remove('active'), durationSec * 1000)
       }, delayMs)
     }
@@ -190,8 +244,8 @@ function updateShareLink() {
   const encoded = encodeSequence(sequence)
   const url = new URL(window.location.href)
   url.searchParams.set('seq', encoded)
-  url.searchParams.set('start', String(Number(startOctaveInput.value) || 4))
-  url.searchParams.set('count', String(Number(whiteCountInput.value) || 14))
+  url.searchParams.set('start', String(Number(startOctaveInput.value) || 2))
+  url.searchParams.set('count', String(Number(whiteCountInput.value) || 28))
   if (songSelect && songSelect.value) {
     url.searchParams.set('song', songSelect.value)
   }
@@ -203,6 +257,7 @@ const recordBtn = document.getElementById('recordBtn')
 const stopBtn = document.getElementById('stopBtn')
 const playBtn = document.getElementById('playBtn')
 const shareBtn = document.getElementById('shareBtn')
+const pedalBtn = document.getElementById('pedalBtn')
 const songSelect = document.getElementById('songSelect')
 const loadSongBtn = document.getElementById('loadSongBtn')
 let songIndex = []
@@ -232,6 +287,36 @@ shareBtn.addEventListener('click', async () => {
     setTimeout(() => (shareBtn.textContent = '分享'), 1500)
   } catch (e) {
     // ignore
+  }
+})
+
+// 踏板控制（按钮与空格键）
+pedalBtn.addEventListener('pointerdown', () => {
+  pedalDown = true
+  pedalBtn.setAttribute('aria-pressed', 'true')
+})
+pedalBtn.addEventListener('pointerup', () => {
+  pedalDown = false
+  pedalBtn.setAttribute('aria-pressed', 'false')
+  releasePedal()
+})
+window.addEventListener('keydown', (e) => {
+  if (e.code === 'Space') {
+    if (!pedalDown) {
+      pedalDown = true
+      pedalBtn.setAttribute('aria-pressed', 'true')
+    }
+    e.preventDefault()
+  }
+})
+window.addEventListener('keyup', (e) => {
+  if (e.code === 'Space') {
+    if (pedalDown) {
+      pedalDown = false
+      pedalBtn.setAttribute('aria-pressed', 'false')
+      releasePedal()
+    }
+    e.preventDefault()
   }
 })
 

@@ -110,6 +110,10 @@ button:focus-visible {
   display: flex;
   gap: 0.5rem;
 }
+.controls #pedalBtn[aria-pressed="true"] {
+  background: #dde8ff;
+  border-color: #a8c2ff;
+}
 .ctrl-field {
   display: inline-flex;
   align-items: center;
