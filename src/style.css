@@ -168,7 +168,8 @@ button:focus-visible {
 .key {
   user-select: none;
   -webkit-user-select: none;
-  touch-action: manipulation;
+  touch-action: none; /* 禁止默认手势，避免长按弹窗 */
+  -webkit-touch-callout: none; /* iOS 长按弹出菜单 */
   display: block;
 }
 .key.white {

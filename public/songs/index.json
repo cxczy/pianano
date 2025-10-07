@@ -6,6 +6,14 @@
       "tempo": 92,
       "baseOctave": 4,
       "notationPath": "fen_shou_kuai_le.txt"
+    },
+    {
+      "id": "hao_yun_lai",
+      "title": "好运来",
+      "tempo": 132,
+      "baseOctave": 4,
+      "transpose": 2,
+      "notationPath": "hao_yun_lai.txt"
     }
   ]
 }

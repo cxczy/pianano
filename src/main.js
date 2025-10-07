@@ -84,6 +84,8 @@ function createKey(note, octave, type) {
   el.addEventListener('pointerdown', onKeyDown)
   el.addEventListener('pointerup', onKeyUp)
   el.addEventListener('pointerleave', onKeyUp)
+  // 禁用长按弹出菜单/广告标记等浏览器默认行为
+  el.addEventListener('contextmenu', (e) => e.preventDefault())
   return el
 }
 
@@ -134,6 +136,8 @@ let sequence = [] // [{t, note, octave}]
 let startTime = 0
 
 function onKeyDown(e) {
+  // 防止长按触发浏览器默认菜单或广告标记
+  if (e && typeof e.preventDefault === 'function') e.preventDefault()
   const el = e.currentTarget
   const note = el.getAttribute('data-note')
   const octave = parseInt(el.getAttribute('data-octave'), 10)
@@ -332,7 +336,7 @@ window.addEventListener('keyup', (e) => {
 //   - 连音线 '~' = 连接到下一个音符
 const DEGREE_TO_SEMITONE = { 0: -12, 1: 0, 2: 2, 3: 4, 4: 5, 5: 7, 6: 9, 7: 11 } // 0=低八度7
 const SEMI_TO_NOTE = ['C','Cs','D','Ds','E','F','Fs','G','Gs','A','As','B']
-function degreesToSequence(str, baseOctave = 4, tempoBpm = 90) {
+function degreesToSequence(str, baseOctave = 4, tempoBpm = 90, transposeSemi = 0) {
   const beatMs = (60_000 / tempoBpm) // 一拍的毫秒数
   const tokens = str.trim().split(/\s+/)
   let t = 0
@@ -383,7 +387,7 @@ function degreesToSequence(str, baseOctave = 4, tempoBpm = 90) {
     
     // 音高计算
     const baseSemi = DEGREE_TO_SEMITONE[degree] + acc
-    const absoluteSemi = (baseOctave + up - down) * 12 + baseSemi
+    const absoluteSemi = (baseOctave + up - down) * 12 + baseSemi + transposeSemi
     const octave = Math.floor(absoluteSemi / 12)
     const note = SEMI_TO_NOTE[((absoluteSemi % 12) + 12) % 12]
     
@@ -470,7 +474,7 @@ async function fetchSongsIndex() {
       songSelect.value = initialSongId
       const pre = await loadSongById(initialSongId)
       if (pre) {
-        sequence = degreesToSequence(pre.notation, pre.baseOctave, pre.tempo)
+        sequence = degreesToSequence(pre.notation, pre.baseOctave, pre.tempo, pre.transpose || 0)
         playBtn.disabled = false
         shareBtn.disabled = false
         updateShareLink()
@@ -496,7 +500,7 @@ loadSongBtn.addEventListener('click', async () => {
   const key = songSelect.value
   const song = await loadSongById(key)
   if (!song) return
-  sequence = degreesToSequence(song.notation, song.baseOctave, song.tempo)
+  sequence = degreesToSequence(song.notation, song.baseOctave, song.tempo, song.transpose || 0)
   playBtn.disabled = false
   shareBtn.disabled = false
   audioCtx.resume()
