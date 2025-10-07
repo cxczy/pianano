@@ -3,6 +3,11 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <meta name="theme-color" content="#222222" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <link rel="apple-touch-icon" href="/icons/icon.svg" />
     <title>PiaNano — 屏幕钢琴</title>
   </head>
   <body>
@@ -14,6 +19,7 @@
           <button id="stopBtn" disabled>停</button>
           <button id="playBtn" disabled>回</button>
           <button id="shareBtn" disabled>享</button>
+          <button id="installBtn" disabled title="安装到桌面(PWA)">装</button>
           <button id="pedalBtn" aria-pressed="false" title="空格键也可按住">踏</button>
           <label class="ctrl-field">
             <span>八</span>

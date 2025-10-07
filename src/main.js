@@ -1,4 +1,10 @@
 import './style.css'
+// 注册 PWA Service Worker
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js').catch(() => {})
+  })
+}
 
 // Piano config helpers
 const WHITE_NOTES = ['C','D','E','F','G','A','B']
@@ -261,6 +267,7 @@ const recordBtn = document.getElementById('recordBtn')
 const stopBtn = document.getElementById('stopBtn')
 const playBtn = document.getElementById('playBtn')
 const shareBtn = document.getElementById('shareBtn')
+const installBtn = document.getElementById('installBtn')
 const pedalBtn = document.getElementById('pedalBtn')
 const songSelect = document.getElementById('songSelect')
 const loadSongBtn = document.getElementById('loadSongBtn')
@@ -291,6 +298,24 @@ shareBtn.addEventListener('click', async () => {
     setTimeout(() => (shareBtn.textContent = '分享'), 1500)
   } catch (e) {
     // ignore
+  }
+})
+
+// 安装到桌面（PWA）
+let deferredPrompt = null
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault()
+  deferredPrompt = e
+  installBtn.disabled = false
+})
+installBtn.addEventListener('click', async () => {
+  if (!deferredPrompt) return
+  try {
+    deferredPrompt.prompt()
+    await deferredPrompt.userChoice
+  } finally {
+    deferredPrompt = null
+    installBtn.disabled = true
   }
 })
 

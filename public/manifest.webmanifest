@@ -1,0 +1,13 @@
+{
+  "name": "PiaNano 屏幕钢琴",
+  "short_name": "PiaNano",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#222222",
+  "description": "在手机或桌面上打开的屏幕钢琴 WebApp",
+  "icons": [
+    { "src": "/icons/pwa-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icons/pwa-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}
